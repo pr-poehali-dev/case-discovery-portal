@@ -84,11 +84,41 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'spin-roulette': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(3600deg)' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { 
+						boxShadow: '0 0 20px rgba(255, 107, 53, 0.4)',
+						transform: 'scale(1)'
+					},
+					'50%': { 
+						boxShadow: '0 0 40px rgba(255, 107, 53, 0.8)',
+						transform: 'scale(1.05)'
+					}
+				},
+				'bounce-in': {
+					'0%': { 
+						opacity: '0',
+						transform: 'scale(0.3)'
+					},
+					'50%': {
+						transform: 'scale(1.05)'
+					},
+					'100%': { 
+						opacity: '1',
+						transform: 'scale(1)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'spin-roulette': 'spin-roulette 3s cubic-bezier(0.23, 1, 0.32, 1)',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'bounce-in': 'bounce-in 0.6s ease-out'
 			}
 		}
 	},
