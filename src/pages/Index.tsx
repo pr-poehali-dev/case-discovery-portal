@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import Icon from '@/components/ui/icon';
 
 interface CaseItem {
@@ -25,6 +29,10 @@ const Index = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [selectedCase, setSelectedCase] = useState<GameCase | null>(null);
   const [wonItem, setWonItem] = useState<CaseItem | null>(null);
+  const [balance, setBalance] = useState(250);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
 
   const gameCases: GameCase[] = [
     {
@@ -86,11 +94,21 @@ const Index = () => {
     }
   };
 
+  const paymentMethods = [
+    { id: 'card', name: 'Банковская карта', icon: 'CreditCard', bonus: 0 },
+    { id: 'qiwi', name: 'QIWI Кошелек', icon: 'Wallet', bonus: 5 },
+    { id: 'yandex', name: 'ЮMoney', icon: 'Coins', bonus: 3 },
+    { id: 'crypto', name: 'Криптовалюта', icon: 'DollarSign', bonus: 10 },
+  ];
+
+  const topUpAmounts = [100, 500, 1000, 2500, 5000, 10000];
+
   const spinRoulette = () => {
-    if (!selectedCase || isSpinning) return;
+    if (!selectedCase || isSpinning || balance < selectedCase.price) return;
     
     setIsSpinning(true);
     setWonItem(null);
+    setBalance(prev => prev - selectedCase.price);
 
     // Симуляция вращения рулетки
     setTimeout(() => {
@@ -100,8 +118,166 @@ const Index = () => {
     }, 3000);
   };
 
+  const handleTopUp = () => {
+    const amount = parseInt(topUpAmount);
+    if (!amount || !selectedPaymentMethod) return;
+
+    const method = paymentMethods.find(m => m.id === selectedPaymentMethod);
+    const bonus = method ? Math.floor(amount * method.bonus / 100) : 0;
+    
+    setBalance(prev => prev + amount + bonus);
+    setIsTopUpOpen(false);
+    setTopUpAmount('');
+    setSelectedPaymentMethod('');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Header with Balance */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-white">CASE OPENING</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="glass-effect px-4 py-2 rounded-lg border-white/20">
+              <div className="flex items-center gap-2">
+                <Icon name="Wallet" className="text-yellow-400" />
+                <span className="text-white font-bold">{balance.toLocaleString()}₽</span>
+              </div>
+            </div>
+            <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
+              <DialogTrigger asChild>
+                <Button className="gradient-primary font-bold">
+                  <Icon name="Plus" className="mr-2" />
+                  ПОПОЛНИТЬ
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="glass-effect border-white/20 text-white max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl gradient-primary bg-clip-text text-transparent">
+                    Пополнение баланса
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Выберите сумму и способ пополнения
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-6">
+                  {/* Quick amounts */}
+                  <div>
+                    <Label className="text-white mb-3 block">Быстрый выбор суммы</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {topUpAmounts.map((amount) => (
+                        <Button
+                          key={amount}
+                          variant={topUpAmount === amount.toString() ? "default" : "outline"}
+                          className={`${
+                            topUpAmount === amount.toString() 
+                              ? 'gradient-primary' 
+                              : 'glass-effect border-white/30 text-white hover:bg-white/20'
+                          }`}
+                          onClick={() => setTopUpAmount(amount.toString())}
+                        >
+                          {amount.toLocaleString()}₽
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom amount */}
+                  <div>
+                    <Label htmlFor="amount" className="text-white">Или введите свою сумму</Label>
+                    <Input
+                      id="amount"
+                      value={topUpAmount}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                      placeholder="Введите сумму..."
+                      className="glass-effect border-white/30 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <Separator className="bg-white/20" />
+
+                  {/* Payment methods */}
+                  <div>
+                    <Label className="text-white mb-3 block">Способ оплаты</Label>
+                    <div className="space-y-2">
+                      {paymentMethods.map((method) => (
+                        <div
+                          key={method.id}
+                          className={`p-3 rounded-lg cursor-pointer transition-all ${
+                            selectedPaymentMethod === method.id
+                              ? 'gradient-primary'
+                              : 'glass-effect border-white/20 hover:bg-white/10'
+                          }`}
+                          onClick={() => setSelectedPaymentMethod(method.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Icon name={method.icon as any} />
+                              <span className="font-medium">{method.name}</span>
+                            </div>
+                            {method.bonus > 0 && (
+                              <Badge className="bg-green-500 text-white">
+                                +{method.bonus}% бонус
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Total with bonus */}
+                  {topUpAmount && selectedPaymentMethod && (
+                    <div className="glass-effect p-4 rounded-lg border-white/20">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">К доплате:</span>
+                        <span className="text-white font-bold">{parseInt(topUpAmount || '0').toLocaleString()}₽</span>
+                      </div>
+                      {(() => {
+                        const method = paymentMethods.find(m => m.id === selectedPaymentMethod);
+                        const bonus = method ? Math.floor(parseInt(topUpAmount || '0') * method.bonus / 100) : 0;
+                        if (bonus > 0) {
+                          return (
+                            <div className="flex justify-between items-center text-green-400">
+                              <span>Бонус:</span>
+                              <span className="font-bold">+{bonus.toLocaleString()}₽</span>
+                            </div>
+                          );
+                        }
+                      })()}
+                      <Separator className="bg-white/20 my-2" />
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="text-white font-bold">Итого:</span>
+                        <span className="text-yellow-400 font-bold">
+                          {(() => {
+                            const method = paymentMethods.find(m => m.id === selectedPaymentMethod);
+                            const amount = parseInt(topUpAmount || '0');
+                            const bonus = method ? Math.floor(amount * method.bonus / 100) : 0;
+                            return (amount + bonus).toLocaleString();
+                          })()}₽
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleTopUp}
+                    disabled={!topUpAmount || !selectedPaymentMethod}
+                    className="w-full gradient-primary font-bold text-lg py-3"
+                  >
+                    <Icon name="CreditCard" className="mr-2" />
+                    ПОПОЛНИТЬ БАЛАНС
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-cyan-500/20" />
@@ -174,10 +350,10 @@ const Index = () => {
               <div className="text-center mb-8">
                 <Button
                   onClick={spinRoulette}
-                  disabled={isSpinning}
+                  disabled={isSpinning || balance < selectedCase.price}
                   size="lg"
                   className={`text-xl px-12 py-6 font-bold ${
-                    isSpinning 
+                    isSpinning || balance < selectedCase.price
                       ? 'bg-gray-600' 
                       : 'gradient-primary hover:scale-105 animate-pulse-glow'
                   } transition-all`}
@@ -186,6 +362,11 @@ const Index = () => {
                     <>
                       <Icon name="Loader2" className="mr-2 animate-spin" />
                       ВРАЩЕНИЕ...
+                    </>
+                  ) : balance < selectedCase.price ? (
+                    <>
+                      <Icon name="Wallet" className="mr-2" />
+                      НЕДОСТАТОЧНО СРЕДСТВ
                     </>
                   ) : (
                     <>
@@ -258,13 +439,23 @@ const Index = () => {
                 </div>
                 
                 <Button 
-                  className="w-full gradient-primary font-bold"
+                  className={`w-full font-bold ${
+                    balance >= caseItem.price 
+                      ? 'gradient-primary' 
+                      : 'bg-gray-600 text-gray-400'
+                  }`}
+                  disabled={balance < caseItem.price}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedCase(caseItem);
+                    if (balance >= caseItem.price) {
+                      setSelectedCase(caseItem);
+                    }
                   }}
                 >
-                  ВЫБРАТЬ ЗА {caseItem.price}₽
+                  {balance >= caseItem.price 
+                    ? `ВЫБРАТЬ ЗА ${caseItem.price}₽`
+                    : `НУЖНО ${caseItem.price}₽`
+                  }
                 </Button>
               </CardContent>
             </Card>
